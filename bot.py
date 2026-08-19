@@ -78,11 +78,10 @@ def mostra_alert_titoli():
     attivi = [a for a in alert if not a["attivato"]]
     if len(attivi) == 0:
         return "Non hai nessun alert attivo al momento."
-    testo = "I tuoi alert attivi:\n"
+  testo = "I tuoi alert attivi:\n"
     for a in attivi:
-        testo += f"- {a[\'simbolo\']} {a[\'direzione\']} {a[\'soglia\']}$\n"
+        testo += "- " + a['simbolo'] + " " + a['direzione'] + " " + str(a['soglia']) + "$\n"
     return testo
-
 def cancella_alert_titolo(simbolo):
     with open(FILE_ALERT_TITOLI, "r") as f:
         alert = json.load(f)
@@ -155,15 +154,15 @@ async def controlla_alert_promemoria(bot, chat_id):
             adesso = datetime.datetime.now() + datetime.timedelta(hours=2)
             modificato = False
             for p in promemoria:
-                data_ora = datetime.datetime.strptime(f"{p[\'data\']} {p[\'ora\']}", "%Y-%m-%d %H:%M")
+                data_ora = datetime.datetime.strptime(p['data'] + " " + p['ora'], "%Y-%m-%d %H:%M")
                 diff = data_ora - adesso
                 ore_mancanti = diff.total_seconds() / 3600
                 if 23.5 <= ore_mancanti <= 24.5 and not p["alert_24h"]:
-                    await bot.send_message(chat_id=chat_id, text=f"Domani hai: {p[\'evento\']} alle {p[\'ora\']}!")
+                    await bot.send_message(chat_id=chat_id, text="Domani hai: " + p['evento'] + " alle " + p['ora'] + "!")
                     p["alert_24h"] = True
                     modificato = True
                 if 0.5 <= ore_mancanti <= 1.5 and not p["alert_1h"]:
-                    await bot.send_message(chat_id=chat_id, text=f"Tra 1 ora hai: {p[\'evento\']} alle {p[\'ora\']}!")
+                    await bot.send_message(chat_id=chat_id, text="Tra 1 ora hai: " + p['evento'] + " alle " + p['ora'] + "!")
                     p["alert_1h"] = True
                     modificato = True
             if modificato:
@@ -189,7 +188,7 @@ async def controlla_alert_titoli(bot, chat_id):
                 elif a["direzione"] == "sopra" and prezzo_attuale >= a["soglia"]:
                     scatta = True
                 if scatta:
-                    await bot.send_message(chat_id=chat_id, text=f"ALERT! {a[\'simbolo\']} e a {prezzo_attuale}$ ({a[\'direzione\']} {a[\'soglia\']}$)!")
+                    await bot.send_message(chat_id=chat_id, text="ALERT! " + a['simbolo'] + " e a " + str(prezzo_attuale) + "$ (" + a['direzione'] + " " + str(a['soglia']) + "$)!")
                     a["attivato"] = True
                     modificato = True
             if modificato:
