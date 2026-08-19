@@ -1,4 +1,3 @@
-
 import anthropic
 import requests
 import datetime
@@ -7,13 +6,12 @@ import os
 import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+import yfinance as yf
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-import yfinance as yf
 
 FILE_PROMEMORIA = "promemoria.json"
 FILE_ALERT_TITOLI = "alert_titoli.json"
@@ -26,27 +24,31 @@ if not os.path.exists(FILE_ALERT_TITOLI):
     with open(FILE_ALERT_TITOLI, "w") as f:
         json.dump([], f)
 
+
 def che_ore_sono():
     adesso = datetime.datetime.now()
     ora_italiana = adesso + datetime.timedelta(hours=2)
-    return f"Sono le {ora_italiana.hour}:{ora_italiana.minute}"
+    return "Sono le " + str(ora_italiana.hour) + ":" + str(ora_italiana.minute)
+
 
 def data_oggi():
     adesso = datetime.datetime.now()
-    return f"{adesso.year}-{adesso.month:02d}-{adesso.day:02d}"
+    return str(adesso.year) + "-" + str(adesso.month).zfill(2) + "-" + str(adesso.day).zfill(2)
+
 
 def controlla_meteo(citta):
-    url_coordinate = f"https://geocoding-api.open-meteo.com/v1/search?name={citta}&count=1&language=it"
+    url_coordinate = "https://geocoding-api.open-meteo.com/v1/search?name=" + citta + "&count=1&language=it"
     risposta_coord = requests.get(url_coordinate)
     dati_coord = risposta_coord.json()
     lat = dati_coord["results"][0]["latitude"]
     lon = dati_coord["results"][0]["longitude"]
-    url_meteo = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,precipitation&timezone=Europe/Rome"
+    url_meteo = "https://api.open-meteo.com/v1/forecast?latitude=" + str(lat) + "&longitude=" + str(lon) + "&current=temperature_2m,precipitation&timezone=Europe/Rome"
     risposta_meteo = requests.get(url_meteo)
     dati_meteo = risposta_meteo.json()
     temperatura = dati_meteo["current"]["temperature_2m"]
     pioggia = dati_meteo["current"]["precipitation"]
-    return f"A {citta}: {temperatura}C, Pioggia: {pioggia}mm"
+    return "A " + citta + ": " + str(temperatura) + "C, Pioggia: " + str(pioggia) + "mm"
+
 
 def salva_promemoria(evento, data, ora):
     with open(FILE_PROMEMORIA, "r") as f:
@@ -55,13 +57,15 @@ def salva_promemoria(evento, data, ora):
     promemoria.append(nuovo)
     with open(FILE_PROMEMORIA, "w") as f:
         json.dump(promemoria, f, indent=2)
-    return f"Promemoria salvato! Ti ricordero {evento} il {data} alle {ora}"
+    return "Promemoria salvato! Ti ricordero " + evento + " il " + data + " alle " + ora
+
 
 def prezzo_titolo(simbolo):
     titolo = yf.Ticker(simbolo)
     dati = titolo.history(period="1d")
     prezzo = dati["Close"].iloc[-1]
     return round(prezzo, 2)
+
 
 def salva_alert_titolo(simbolo, soglia, direzione):
     with open(FILE_ALERT_TITOLI, "r") as f:
@@ -70,7 +74,8 @@ def salva_alert_titolo(simbolo, soglia, direzione):
     alert.append(nuovo)
     with open(FILE_ALERT_TITOLI, "w") as f:
         json.dump(alert, f, indent=2)
-    return f"Alert salvato! Ti avviso quando {simbolo} va {direzione} {soglia}"
+    return "Alert salvato! Ti avviso quando " + simbolo + " va " + direzione + " " + str(soglia)
+
 
 def mostra_alert_titoli():
     with open(FILE_ALERT_TITOLI, "r") as f:
@@ -78,17 +83,20 @@ def mostra_alert_titoli():
     attivi = [a for a in alert if not a["attivato"]]
     if len(attivi) == 0:
         return "Non hai nessun alert attivo al momento."
-  testo = "I tuoi alert attivi:\n"
+    testo = "I tuoi alert attivi:\n"
     for a in attivi:
-        testo += "- " + a['simbolo'] + " " + a['direzione'] + " " + str(a['soglia']) + "$\n"
+        testo += "- " + a["simbolo"] + " " + a["direzione"] + " " + str(a["soglia"]) + "$\n"
     return testo
+
+
 def cancella_alert_titolo(simbolo):
     with open(FILE_ALERT_TITOLI, "r") as f:
         alert = json.load(f)
     nuovi = [a for a in alert if a["simbolo"].upper() != simbolo.upper()]
     with open(FILE_ALERT_TITOLI, "w") as f:
         json.dump(nuovi, f, indent=2)
-    return f"Alert su {simbolo} cancellati!"
+    return "Alert su " + simbolo + " cancellati!"
+
 
 tools = [
     {"name": "che_ore_sono", "description": "Usa questo tool quando l utente chiede che ore sono", "input_schema": {"type": "object", "properties": {}, "required": []}},
@@ -102,6 +110,7 @@ tools = [
 ]
 
 conversazione = []
+
 
 def agente(messaggio):
     conversazione.clear()
@@ -146,6 +155,7 @@ def agente(messaggio):
     conversazione.append({"role": "assistant", "content": testo})
     return testo
 
+
 async def controlla_alert_promemoria(bot, chat_id):
     while True:
         try:
@@ -154,23 +164,24 @@ async def controlla_alert_promemoria(bot, chat_id):
             adesso = datetime.datetime.now() + datetime.timedelta(hours=2)
             modificato = False
             for p in promemoria:
-                data_ora = datetime.datetime.strptime(p['data'] + " " + p['ora'], "%Y-%m-%d %H:%M")
+                data_ora = datetime.datetime.strptime(p["data"] + " " + p["ora"], "%Y-%m-%d %H:%M")
                 diff = data_ora - adesso
                 ore_mancanti = diff.total_seconds() / 3600
                 if 23.5 <= ore_mancanti <= 24.5 and not p["alert_24h"]:
-                    await bot.send_message(chat_id=chat_id, text="Domani hai: " + p['evento'] + " alle " + p['ora'] + "!")
+                    await bot.send_message(chat_id=chat_id, text="Domani hai: " + p["evento"] + " alle " + p["ora"] + "!")
                     p["alert_24h"] = True
                     modificato = True
                 if 0.5 <= ore_mancanti <= 1.5 and not p["alert_1h"]:
-                    await bot.send_message(chat_id=chat_id, text="Tra 1 ora hai: " + p['evento'] + " alle " + p['ora'] + "!")
+                    await bot.send_message(chat_id=chat_id, text="Tra 1 ora hai: " + p["evento"] + " alle " + p["ora"] + "!")
                     p["alert_1h"] = True
                     modificato = True
             if modificato:
                 with open(FILE_PROMEMORIA, "w") as f:
                     json.dump(promemoria, f, indent=2)
         except Exception as e:
-            print(f"Errore alert promemoria: {e}")
+            print("Errore alert promemoria: " + str(e))
         await asyncio.sleep(1800)
+
 
 async def controlla_alert_titoli(bot, chat_id):
     while True:
@@ -188,18 +199,20 @@ async def controlla_alert_titoli(bot, chat_id):
                 elif a["direzione"] == "sopra" and prezzo_attuale >= a["soglia"]:
                     scatta = True
                 if scatta:
-                    await bot.send_message(chat_id=chat_id, text="ALERT! " + a['simbolo'] + " e a " + str(prezzo_attuale) + "$ (" + a['direzione'] + " " + str(a['soglia']) + "$)!")
+                    await bot.send_message(chat_id=chat_id, text="ALERT! " + a["simbolo"] + " e a " + str(prezzo_attuale) + "$ (" + a["direzione"] + " " + str(a["soglia"]) + "$)!")
                     a["attivato"] = True
                     modificato = True
             if modificato:
                 with open(FILE_ALERT_TITOLI, "w") as f:
                     json.dump(alert, f, indent=2)
         except Exception as e:
-            print(f"Errore alert titoli: {e}")
+            print("Errore alert titoli: " + str(e))
         await asyncio.sleep(1800)
+
 
 chat_id_cecilia = None
 alert_avviato = False
+
 
 async def rispondi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global chat_id_cecilia, alert_avviato
@@ -207,17 +220,3 @@ async def rispondi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not alert_avviato:
         alert_avviato = True
         asyncio.ensure_future(controlla_alert_promemoria(context.bot, chat_id_cecilia))
-        asyncio.ensure_future(controlla_alert_titoli(context.bot, chat_id_cecilia))
-        print(f"Alert avviati per chat_id: {chat_id_cecilia}")
-    messaggio = update.message.text
-    risposta_agente = agente(messaggio)
-    await update.message.reply_text(risposta_agente)
-
-async def main():
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT, rispondi))
-    print("Bot avviato!")
-    await app.run_polling(drop_pending_updates=True)
-
-if __name__ == "__main__":
-    asyncio.run(main())
