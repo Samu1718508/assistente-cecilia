@@ -238,7 +238,8 @@ async def main():
     print("Bot avviato!")
     await app.run_polling(drop_pending_updates=True)
 
-
 if __name__ == "__main__":
     print("STO PER AVVIARE MAIN!")
-    asyncio.run(main())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(main())
