@@ -225,3 +225,20 @@ async def rispondi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not alert_avviato:
         alert_avviato = True
         asyncio.ensure_future(controlla_alert_promemoria(context.bot, chat_id_cecilia))
+        asyncio.ensure_future(controlla_alert_titoli(context.bot, chat_id_cecilia))
+        print("Alert avviati per chat_id: " + str(chat_id_cecilia))
+    messaggio = update.message.text
+    risposta_agente = agente(messaggio)
+    await update.message.reply_text(risposta_agente)
+
+
+async def main():
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    app.add_handler(MessageHandler(filters.TEXT, rispondi))
+    print("Bot avviato!")
+    await app.run_polling(drop_pending_updates=True)
+
+
+if __name__ == "__main__":
+    print("STO PER AVVIARE MAIN!")
+    asyncio.run(main())
