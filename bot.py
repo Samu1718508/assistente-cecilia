@@ -1,3 +1,4 @@
+print("IL FILE STA PARTENDO!")
 import anthropic
 import requests
 import datetime
