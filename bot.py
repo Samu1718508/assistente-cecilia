@@ -8,11 +8,15 @@ import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 import yfinance as yf
+print("IMPORT COMPLETATI!")
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+print("TOKEN ANTHROPIC:", ANTHROPIC_API_KEY is not None)
+print("TOKEN TELEGRAM:", TELEGRAM_TOKEN is not None)
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+print("CLIENT CREATO!")
 
 FILE_PROMEMORIA = "promemoria.json"
 FILE_ALERT_TITOLI = "alert_titoli.json"
