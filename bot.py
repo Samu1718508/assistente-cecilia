@@ -232,14 +232,13 @@ async def rispondi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(risposta_agente)
 
 
-async def main():
+def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT, rispondi))
     print("Bot avviato!")
-    await app.run_polling(drop_pending_updates=True)
+    app.run_polling(drop_pending_updates=True)
+
 
 if __name__ == "__main__":
     print("STO PER AVVIARE MAIN!")
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(main())
+    main()
